@@ -27,9 +27,9 @@ from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
 from langchain.document_loaders import CSVLoader
-from langchain_openai import ChatOpenAI
 
-from prompts import QA_CHAIN_PROMPT, qa_template
+from prompts import QA_CHAIN_PROMPT, qa_template, MAP_PROMPT, REDUCE_PROMPT
+from modules.helper import map_reduce
 
 # import langsmith to debug easier
 import langchain
@@ -41,111 +41,52 @@ try:  # for local debug
     os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
     os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
 
-    OPENAI_API_KEY = os.getenv("OPENAI_KEY")
 except:
     pass
 
-GPT4_DEFAULT="gpt-4-0125-preview"
 
-def get_llm(prompt):
-    model_kwargs = {  # AI21
-        "maxTokens": 8000,
-        "temperature": 0,
-        "topP": 0.3,
-        "stopSequences": ["Human:"],
-        "countPenalty": {"scale": 0},
-        "presencePenalty": {"scale": 0},
-        "frequencyPenalty": {"scale": 0},
-        "prompt": prompt
-    }
+def create_pages_from_documents(documents, n):
+    """
+    Groups every 'n' documents into a 'page_content' key of a new dictionary.
 
+    Parameters:
+    - documents: List of 'Document' objects or similar structures.
+    - n: Number of documents to group into each 'page_content'.
+
+    Returns:
+    - List[Dict]: A list where each element is a dictionary with a 'page_content' key.
+    """
+    pages = []  # Resulting list of page dictionaries
+    current_page_content = []  # Temporary storage for the current page's content
+
+    for document in documents:
+        current_page_content.append(document)  # Add the document to the current page
+        if len(current_page_content) == n:  # If the page is full
+            pages.append({'page_content': current_page_content})  # Add the page to the list
+            current_page_content = []  # Start a new page
+
+    # Add the last page if it has less than 'n' documents but is not empty
+    if current_page_content:
+        pages.append({'page_content': current_page_content})
+
+    return pages
+
+
+llm = LLMChain(
     llm = Bedrock(
         credentials_profile_name="default",
         # sets the profile name to use for AWS credentials (if not the default)
         region_name="us-east-1",  # sets the region name (if not the default)
-        model_id="ai21.j2-ultra-v1",  # set the foundation model
-        model_kwargs=model_kwargs)  # configure the properties for Claude
-
-    return llm
-
-# llm = LLMChain(
-#     llm = Bedrock(
-#         credentials_profile_name="default",
-#         # sets the profile name to use for AWS credentials (if not the default)
-#         region_name="us-east-1",  # sets the region name (if not the default)
-#         # model_id="ai21.j2-ultra-v1",  # set the foundation model
-#         # model_id = "anthropic.claude-v2"
-#         model_id = GPT4_DEFAULT
-#         ),
-#     prompt = QA_CHAIN_PROMPT
-# )
-
-llm = LLMChain(
-    llm=ChatOpenAI(model_name=GPT4_DEFAULT,
-                   response_format={"type": "json_object"},
-                   temperature=0),
-    prompt=QA_CHAIN_PROMPT,
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id = "anthropic.claude-v2:1"
+        # model_id = GPT4_DEFAULT
+        ),
+    prompt = QA_CHAIN_PROMPT,
     verbose = True
 )
 
 
-
-def get_index():  # creates and returns an in-memory vector store to be used in the application
-
-    embeddings = BedrockEmbeddings(
-        credentials_profile_name="default",
-        # sets the profile name to use for AWS credentials (if not the default)
-        region_name="us-east-1",  # sets the region name (if not the default)
-    )  # create a Titan Embeddings client
-
-    doc_path = "docs/fakedata.csv"  # assumes local PDF file with this name
-
-    loader = CSVLoader(file_path=doc_path)
-
-    text_splitter = RecursiveCharacterTextSplitter(  # create a text splitter
-        separators=["\n\n", "\n", ".", " "],
-        # split chunks at (1) paragraph, (2) line, (3) sentence, or (4) word, in that order
-        chunk_size=1000,  # divide into 1000-character chunks using the separators above
-        chunk_overlap=100  # number of characters that can overlap with previous chunk
-    )
-
-    index_creator = VectorstoreIndexCreator(  # create a vector store factory
-        vectorstore_cls=FAISS,  # use an in-memory vector store for demo purposes
-        embedding=embeddings,  # use Titan embeddings
-        text_splitter=text_splitter,  # use the recursive text splitter
-    )
-
-    index_from_loader = index_creator.from_loaders([loader])  # create a vector store index from the loaded PDF
-
-    return index_from_loader  # return the index to be cached by the client app
-
-
-def get_memory():  # create memory for this chat session
-
-    memory = ConversationBufferWindowMemory(memory_key="chat_history",
-                                            return_messages=True)  # Maintains a history of previous messages
-
-    return memory
-
-
-# def get_rag_chat_response(input_text, memory, index, prompt):  # chat client function
-
-    # llm = get_llm(prompt=prompt)
-
-    # conversation_with_retrieval = ConversationalRetrievalChain.from_llm(llm, index.vectorstore.as_retriever(),
-    #                                                                     memory=memory)
-
-    # chat_response = conversation_with_retrieval(
-    #     {"query": input_text})  # pass the user message and summary to the model
-
-    # result = llm.run({"query"=input_text,
-    #                   "context"=get_index()}
-    #         )
-
-    # return result
-
-
-input_text = "Which models are between 40 to 60 KG?"
+input_text = "Which models weigh between 40 to 60 KG?"
 
 # response = get_rag_chat_response(input_text=input_text,
 #                                  memory=get_memory(),
@@ -153,9 +94,25 @@ input_text = "Which models are between 40 to 60 KG?"
 #                                  prompt=QA_CHAIN_PROMPT)
 doc_path = "docs/data.csv"
 
-context = pd.read_csv(doc_path)
-response = llm.run(query = input_text,
-                   context = context[:5]
-)
+loader = CSVLoader(file_path=doc_path)
+
+data = loader.load()
+# print(data[:5])
+
+documents = data  # Your list of 'Document' objects as loaded or defined
+n = 5  # Example: Group every 5 documents
+
+pages = create_pages_from_documents(documents, n)
+
+# context = pd.read_csv(doc_path)
+# response = llm.run(query = input_text,
+#                    context = data[:15]
+# )
+
+# I want 'data' to be a list of dict variables
+
+print(pages[0].get("page_content"))
+
+response = map_reduce(pages[0].get("page_content"), MAP_PROMPT, REDUCE_PROMPT)
 
 print(response)

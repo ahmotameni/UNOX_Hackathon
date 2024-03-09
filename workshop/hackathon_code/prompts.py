@@ -9,11 +9,7 @@ Your tasks are to:
 2- If you cannot answer the question with the provided context, return an empty array.
 3- Respond a JSON object formatted according to the following schema:
 
-```JSON
-{{
-    "answer": "string", // Answer to the question using the provided context
-}}
-```
+
 #####{query}#####
 
 -----{context}-----

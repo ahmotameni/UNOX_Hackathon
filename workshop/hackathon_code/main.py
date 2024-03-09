@@ -14,6 +14,7 @@
 
 import os
 
+import pandas as pd
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
 from langchain.memory import ConversationBufferWindowMemory
@@ -26,6 +27,7 @@ from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
 from langchain.document_loaders import CSVLoader
+from langchain_openai import ChatOpenAI
 
 from prompts import QA_CHAIN_PROMPT, qa_template
 
@@ -38,10 +40,12 @@ try:  # for local debug
     os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT")
     os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
     os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
+
+    OPENAI_API_KEY = os.getenv("OPENAI_KEY")
 except:
     pass
 
-
+GPT4_DEFAULT="gpt-4-0125-preview"
 
 def get_llm(prompt):
     model_kwargs = {  # AI21
@@ -64,16 +68,26 @@ def get_llm(prompt):
 
     return llm
 
+# llm = LLMChain(
+#     llm = Bedrock(
+#         credentials_profile_name="default",
+#         # sets the profile name to use for AWS credentials (if not the default)
+#         region_name="us-east-1",  # sets the region name (if not the default)
+#         # model_id="ai21.j2-ultra-v1",  # set the foundation model
+#         # model_id = "anthropic.claude-v2"
+#         model_id = GPT4_DEFAULT
+#         ),
+#     prompt = QA_CHAIN_PROMPT
+# )
+
 llm = LLMChain(
-    llm = Bedrock(
-        credentials_profile_name="default",
-        # sets the profile name to use for AWS credentials (if not the default)
-        region_name="us-east-1",  # sets the region name (if not the default)
-        # model_id="ai21.j2-ultra-v1",  # set the foundation model
-        model_id = "anthropic.claude-v2"
-        ),
-    prompt = QA_CHAIN_PROMPT
+    llm=ChatOpenAI(model_name=GPT4_DEFAULT,
+                   response_format={"type": "json_object"},
+                   temperature=0),
+    prompt=QA_CHAIN_PROMPT,
+    verbose = True
 )
+
 
 
 def get_index():  # creates and returns an in-memory vector store to be used in the application
@@ -131,15 +145,17 @@ def get_memory():  # create memory for this chat session
     # return result
 
 
-input_text = "Which models are suitable for making ribs?"
+input_text = "Which models are between 40 to 60 KG?"
 
 # response = get_rag_chat_response(input_text=input_text,
 #                                  memory=get_memory(),
 #                                  index=get_index(),
 #                                  prompt=QA_CHAIN_PROMPT)
+doc_path = "docs/data.csv"
 
+context = pd.read_csv(doc_path)
 response = llm.run(query = input_text,
-                   context = get_index()
+                   context = context[:5]
 )
 
 print(response)

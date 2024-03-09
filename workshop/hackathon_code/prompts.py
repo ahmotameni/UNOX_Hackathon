@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 
 
-qa_template = """You have been provided with a question, delimited by '#####'. The following pieces of context, delimited by '-----', will assist you in answering the question. The source file for each piece of context is provided at its beginning and is delimited by '<<<' and '>>>'.
+qa_template = """You have been provided with a question, delimited by '#####'. The following pieces of context which is from a csv file, delimited by '-----', will assist you in answering the question.
 Your tasks are to:
 1- Provide a helpful answer to the question using ONLY the information provided in the context.
 2- List the source file or files that you utilized to answer the question. If you cannot answer the question with the provided context, return an empty array.

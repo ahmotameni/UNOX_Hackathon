@@ -24,6 +24,7 @@ from langchain.indexes import VectorstoreIndexCreator
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
+from langchain.document_loaders import CSVLoader
 
 from prompts import QA_CHAIN_PROMPT
 
@@ -43,7 +44,7 @@ except:
 
 def get_llm(prompt):
     model_kwargs = {  # AI21
-        "maxTokens": 1024,
+        "maxTokens": 8000,
         "temperature": 0,
         "topP": 0.3,
         "stopSequences": ["Human:"],
@@ -71,10 +72,9 @@ def get_index():  # creates and returns an in-memory vector store to be used in 
         region_name="us-east-1",  # sets the region name (if not the default)
     )  # create a Titan Embeddings client
 
-    pdfs_path = "docs"  # assumes local PDF file with this name
+    doc_path = "docs/fakedata.csv"  # assumes local PDF file with this name
 
-    for pdf_path in os.listdir(pdfs_path):
-        loader = UnstructuredFileLoader(file_path=pdf_path, mode="paged")
+    loader = CSVLoader(file_path=doc_path)
 
     text_splitter = RecursiveCharacterTextSplitter(  # create a text splitter
         separators=["\n\n", "\n", ".", " "],
@@ -89,7 +89,7 @@ def get_index():  # creates and returns an in-memory vector store to be used in 
         text_splitter=text_splitter,  # use the recursive text splitter
     )
 
-    index_from_loader = index_creator.from_loaders([loader])  # create an vector store index from the loaded PDF
+    index_from_loader = index_creator.from_loaders([loader])  # create a vector store index from the loaded PDF
 
     return index_from_loader  # return the index to be cached by the client app
 
@@ -115,7 +115,7 @@ def get_rag_chat_response(input_text, memory, index, prompt):  # chat client fun
     return chat_response['answer']
 
 
-input_text = "What is the power source of this oven?"
+input_text = "Which models are suitable for making ribs?"
 
 response = get_rag_chat_response(input_text=input_text,
                                  memory=get_memory(),

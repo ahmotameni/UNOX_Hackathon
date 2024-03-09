@@ -15,6 +15,7 @@
 import os
 
 from dotenv import load_dotenv
+from langchain.chains.llm import LLMChain
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.llms.bedrock import Bedrock
 from langchain.chains import ConversationalRetrievalChain
@@ -26,7 +27,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
 from langchain.document_loaders import CSVLoader
 
-from prompts import QA_CHAIN_PROMPT
+from prompts import QA_CHAIN_PROMPT, qa_template
 
 # import langsmith to debug easier
 import langchain
@@ -62,6 +63,17 @@ def get_llm(prompt):
         model_kwargs=model_kwargs)  # configure the properties for Claude
 
     return llm
+
+llm = LLMChain(
+    llm = Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id = "anthropic.claude-v2"
+        ),
+    prompt = QA_CHAIN_PROMPT
+)
 
 
 def get_index():  # creates and returns an in-memory vector store to be used in the application
@@ -102,24 +114,32 @@ def get_memory():  # create memory for this chat session
     return memory
 
 
-def get_rag_chat_response(input_text, memory, index, prompt):  # chat client function
+# def get_rag_chat_response(input_text, memory, index, prompt):  # chat client function
 
-    llm = get_llm(prompt=prompt)
+    # llm = get_llm(prompt=prompt)
 
-    conversation_with_retrieval = ConversationalRetrievalChain.from_llm(llm, index.vectorstore.as_retriever(),
-                                                                        memory=memory)
+    # conversation_with_retrieval = ConversationalRetrievalChain.from_llm(llm, index.vectorstore.as_retriever(),
+    #                                                                     memory=memory)
 
-    chat_response = conversation_with_retrieval(
-        {"question": input_text})  # pass the user message and summary to the model
+    # chat_response = conversation_with_retrieval(
+    #     {"query": input_text})  # pass the user message and summary to the model
 
-    return chat_response['answer']
+    # result = llm.run({"query"=input_text,
+    #                   "context"=get_index()}
+    #         )
+
+    # return result
 
 
 input_text = "Which models are suitable for making ribs?"
 
-response = get_rag_chat_response(input_text=input_text,
-                                 memory=get_memory(),
-                                 index=get_index(),
-                                 prompt=QA_CHAIN_PROMPT)
+# response = get_rag_chat_response(input_text=input_text,
+#                                  memory=get_memory(),
+#                                  index=get_index(),
+#                                  prompt=QA_CHAIN_PROMPT)
+
+response = llm.run(query = input_text,
+                   context = get_index()
+)
 
 print(response)

@@ -24,8 +24,8 @@ def map_reduce(doc, map_prompt, reduce_prompt) -> str:
     """
     We use the map-reduce pattern to answer the question from huge documents.
     """
-    # map_prompt = PromptTemplate.from_template(template)
-    # reduce_prompt = PromptTemplate.from_template(reduce_template)
+    map_prompt = PromptTemplate.from_template(map_prompt)
+    reduce_prompt = PromptTemplate.from_template(reduce_prompt)
 
     llm = llm=Bedrock(
         credentials_profile_name="default",
@@ -55,11 +55,11 @@ def map_reduce(doc, map_prompt, reduce_prompt) -> str:
     # collapse_chain = (
     #         {"context": doc}
     #         | reduce_prompt
-    #         | llm
+    #         | general_llm
     # )
 
     # def get_num_tokens(docs):
-    #     return llm.get_num_tokens(format_docs(docs))
+    #     return general_llm.get_num_tokens(format_docs(docs))
 
     # The chain we'll repeatedly apply to collapse subsets of the documents
     # into a consolidate document until the total token size of our

@@ -14,29 +14,21 @@
 
 import os
 
-import pandas as pd
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
-from langchain.memory import ConversationBufferWindowMemory
 from langchain.llms.bedrock import Bedrock
-from langchain.chains import ConversationalRetrievalChain
 
-from langchain.embeddings import BedrockEmbeddings
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.vectorstores import FAISS
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PyPDFLoader, UnstructuredFileLoader
 from langchain.document_loaders import CSVLoader
 
-from prompts import QA_CHAIN_PROMPT, qa_template, MAP_PROMPT, REDUCE_PROMPT
-from modules.helper import map_reduce
+from modules.prompts import QA_CHAIN_PROMPT, CONDENSE_QUESTION_PROMPT, \
+    q_generator_parser, INITIAL_CHAIN_PROMPT, FILTER_GEN_PROMPT
 
 # import langsmith to debug easier
-import langchain
+
 _ = load_dotenv("credentials.env")
 
 try:  # for local debug
-    os.environ["LANGCHAIN_TRACING_V2"] =os.getenv("LANGCHAIN_TRACING_V2")
+    os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2")
     os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGCHAIN_ENDPOINT")
     os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
     os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
@@ -44,75 +36,137 @@ try:  # for local debug
 except:
     pass
 
+memory = []
 
-def create_pages_from_documents(documents, n):
-    """
-    Groups every 'n' documents into a 'page_content' key of a new dictionary.
+#
+# def create_pages_from_documents(documents, n):
+#     """
+#     Groups every 'n' documents into a 'page_content' key of a new dictionary.
+#
+#     Parameters:
+#     - documents: List of 'Document' objects or similar structures.
+#     - n: Number of documents to group into each 'page_content'.
+#
+#     Returns:
+#     - List[Dict]: A list where each element is a dictionary with a 'page_content' key.
+#     """
+#     pages = []  # Resulting list of page dictionaries
+#     current_page_content = []  # Temporary storage for the current page's content
+#
+#     for document in documents:
+#         current_page_content.append(document)  # Add the document to the current page
+#         if len(current_page_content) == n:  # If the page is full
+#             pages.append({'page_content': current_page_content})  # Add the page to the list
+#             current_page_content = []  # Start a new page
+#
+#     # Add the last page if it has less than 'n' documents but is not empty
+#     if current_page_content:
+#         pages.append({'page_content': current_page_content})
+#
+#     return pages
 
-    Parameters:
-    - documents: List of 'Document' objects or similar structures.
-    - n: Number of documents to group into each 'page_content'.
 
-    Returns:
-    - List[Dict]: A list where each element is a dictionary with a 'page_content' key.
-    """
-    pages = []  # Resulting list of page dictionaries
-    current_page_content = []  # Temporary storage for the current page's content
-
-    for document in documents:
-        current_page_content.append(document)  # Add the document to the current page
-        if len(current_page_content) == n:  # If the page is full
-            pages.append({'page_content': current_page_content})  # Add the page to the list
-            current_page_content = []  # Start a new page
-
-    # Add the last page if it has less than 'n' documents but is not empty
-    if current_page_content:
-        pages.append({'page_content': current_page_content})
-
-    return pages
-
-
-llm = LLMChain(
-    llm = Bedrock(
+general_llm = LLMChain(
+    llm=Bedrock(
         credentials_profile_name="default",
         # sets the profile name to use for AWS credentials (if not the default)
         region_name="us-east-1",  # sets the region name (if not the default)
         # model_id="ai21.j2-ultra-v1",  # set the foundation model
-        model_id = "anthropic.claude-v2:1"
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
         # model_id = GPT4_DEFAULT
-        ),
-    prompt = QA_CHAIN_PROMPT,
-    verbose = True
+    ),
+    prompt=QA_CHAIN_PROMPT,
+    # verbose=True
 )
 
+standalone_question_gen = LLMChain(
+    llm=Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
+        # model_id = GPT4_DEFAULT
+    ),
+    prompt=CONDENSE_QUESTION_PROMPT,
+    output_parser=q_generator_parser
+)
 
-input_text = "Which models weigh between 40 to 60 KG?"
+initial_chain = LLMChain(
+    llm=Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
+        # model_id = GPT4_DEFAULT
+    ),
+    prompt=INITIAL_CHAIN_PROMPT
+)
+
+filter_gen_chain = LLMChain(
+    llm=Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
+        # model_id = GPT4_DEFAULT
+    ),
+    prompt=FILTER_GEN_PROMPT
+)
+
+# input_text = "Which models have the ability of steam cooking?"
+
+# standalone_question = standalone_question_gen.run(chat_history=chat_history,
+#                                                   question=input_text)["standalone_question"]
 
 # response = get_rag_chat_response(input_text=input_text,
 #                                  memory=get_memory(),
 #                                  index=get_index(),
 #                                  prompt=QA_CHAIN_PROMPT)
-doc_path = "docs/data.csv"
+doc_path = "docs/dataset_words.csv"
 
 loader = CSVLoader(file_path=doc_path)
 
 data = loader.load()
 # print(data[:5])
 
-documents = data  # Your list of 'Document' objects as loaded or defined
-n = 5  # Example: Group every 5 documents
-
-pages = create_pages_from_documents(documents, n)
+# documents = data  # Your list of 'Document' objects as loaded or defined
+# n = 15  # Example: Group every 5 documents
+#
+# pages = create_pages_from_documents(documents, n)
 
 # context = pd.read_csv(doc_path)
-# response = llm.run(query = input_text,
+# response = general_llm.run(query = input_text,
 #                    context = data[:15]
 # )
 
 # I want 'data' to be a list of dict variables
 
-print(pages[0].get("page_content"))
+# response = map_reduce(pages[3].get("page_content"),
+#                       f"{map_prompt}{input_text}#####",
+#                       f"{reduce_prompt}{input_text}#####")
+#
+# print(response)
 
-response = map_reduce(pages[0].get("page_content"), MAP_PROMPT, REDUCE_PROMPT)
+def give_it_to_me_baby(prompt, memory):
 
-print(response)
+    # Generate the standalone question
+    query = standalone_question_gen.run(chat_history=memory,
+                                        question=prompt)["standalone_question"]
+
+    columns = initial_chain.run(query=query)
+
+    filter = filter_gen_chain.run(query=query,
+                                  columns=columns)
+
+    result = filter
+    return result
+
+print(give_it_to_me_baby("Hey! I want an oven to replace my steam cooker in my bakery. I need it to be cheaper "
+                         "than 3000 euros and compact. Actually I want it to have the ability of cleaning itself", []))

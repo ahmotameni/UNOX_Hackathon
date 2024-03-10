@@ -129,32 +129,33 @@ initial_prompt = """
     designed_commercial: If the oven is specifically designed for commercial spaces.
     compact_oven: Whether the oven is compact and meant for simple confectionery/bakery processes.
     self_cleaning: If the oven is self-cleaning.
-    ADAPTIVE.Cooking: Automatically adjusts cooking parameters for optimal results.
-    AIR_Maxi: Maximizes airflow within the oven to ensure even cooking.
-    AIR_Plus: Enhanced air circulation technology for better heat distribution.
-    AUTO_Matic: Fully automatic cooking processes for ease of use.
-    AUTO_Soft: Softens automatic adjustments for delicate cooking.
-    Air_Maxi250_km_h: Powerful air circulation at 250 kilometers per hour for rapid cooking.
-    CLIMALUX: Advanced climate control within the oven for precise temperature management.
-    DDC_Ai: Artificial intelligence-driven dynamic data control for smarter cooking.
-    DDC_App: An application to monitor and control your oven remotely.
-    DDC_Stats: Statistical analysis of oven usage and performance data.
-    DDC_Unox_com: Online platform integration for oven management.
-    DRY_Maxi: Maximum drying efficiency for dehydrating foods.
-    DRY_Plus: Additional drying features for enhanced moisture removal.
-    Dry_Maxi45_m3_h: High-capacity drying up to 45 cubic meters per hour.
-    EFFICENT_Power: Energy-efficient power management system.
-    SENSE_Klean: Sensory technology that detects when cleaning is needed.
-    SMART_Preheating: Intelligent preheating system that learns and adapts to your usage patterns.
-    STEAM_Maxi: Maximizes steam production for moisture-rich cooking.
-    STEAM_Maxi14_l_sec: Delivers steam at a rate of 14 liters per second.
-    STEAM_Maxi22_l_sec: Delivers steam at a rate of 22 liters per second for heavy-duty usage.
-    STEAM_Plus: Enhanced steam features for additional cooking techniques.
+    adaptive_cooking: Automatically adjusts cooking parameters for optimal results.
+    atr_maxi: Maximizes airflow within the oven to ensure even cooking.
+    air_plus: Enhanced air circulation technology for better heat distribution.
+    auto_matic: Fully automatic cooking processes for ease of use.
+    auto_soft: Softens automatic adjustments for delicate cooking.
+    air_maxi250_km_h: Powerful air circulation at 250 kilometers per hour for rapid cooking.
+    climalux: Advanced climate control within the oven for precise temperature management.
+    ddc_ai: Artificial intelligence-driven dynamic data control for smarter cooking.
+    ddc_app: An application to monitor and control your oven remotely.
+    ddc_stats: Statistical analysis of oven usage and performance data.
+    ddc_unox_com: Online platform integration for oven management.
+    dry_maxi: Maximum drying efficiency for dehydrating foods.
+    dry_plus: Additional drying features for enhanced moisture removal.
+    dry_maxi45_m3_h: High-capacity drying up to 45 cubic meters per hour.
+    efficient_power: Energy-efficient power management system.
+    sense_klean: Sensory technology that detects when cleaning is needed.
+    smart_preheating: Intelligent preheating system that learns and adapts to your usage patterns.
+    steam_maxi: Maximizes steam production for moisture-rich cooking.
+    steam_maxi14_l_sec: Delivers steam at a rate of 14 liters per second.
+    steam_maxi22_l_sec: Delivers steam at a rate of 22 liters per second for heavy-duty usage.
+    steam_plus: Enhanced steam features for additional cooking techniques.
     *****
     REMEMBER: The answer should not be anything but a list of keywords., just make it a list of strings like the following example: ['keyword1', 'keyword2']
     REMEMBER: DO NOT PUT ANY FEATURE NAME OTHER THAN THE ONES IN THE LISTS ABOVE : NUMERICAL_KEYWORDS, CATEGORICAL_KEYWORDS
 
     #####{query}#####
+
 
 """
 
@@ -172,7 +173,7 @@ filter_chain_prompt = """
     ['weight', 'price', 'voltage', 'width', 'trays', 'traysize', 'DRY_Maxi'] THEN THE OUTPUT SHOULD BE a JSON string LIKE the following
     :{{"filters": ["weight<50", "price<1000", "voltage<=1200", "width<=15", "trays=3", "traysize<=15", "DRY_Maxi==True"]}}
 
-    *****
+   *****
     price: The price of the oven.
     panel: The type of control panel the oven has.
     powersupply: The power supply of the oven.
@@ -186,34 +187,35 @@ filter_chain_prompt = """
     designed_commercial: If the oven is specifically designed for commercial spaces.
     compact_oven: Whether the oven is compact and meant for simple confectionery/bakery processes.
     self_cleaning: If the oven is self-cleaning.
-    ADAPTIVE.Cooking: Automatically adjusts cooking parameters for optimal results.
-    AIR_Maxi: Maximizes airflow within the oven to ensure even cooking.
-    AIR_Plus: Enhanced air circulation technology for better heat distribution.
-    AUTO_Matic: Fully automatic cooking processes for ease of use.
-    AUTO_Soft: Softens automatic adjustments for delicate cooking.
-    Air_Maxi250_km_h: Powerful air circulation at 250 kilometers per hour for rapid cooking.
-    CLIMALUX: Advanced climate control within the oven for precise temperature management.
-    DDC_Ai: Artificial intelligence-driven dynamic data control for smarter cooking.
-    DDC_App: An application to monitor and control your oven remotely.
-    DDC_Stats: Statistical analysis of oven usage and performance data.
-    DDC_Unox_com: Online platform integration for oven management.
-    DRY_Maxi: Maximum drying efficiency for dehydrating foods.
-    DRY_Plus: Additional drying features for enhanced moisture removal.
-    Dry_Maxi45_m3_h: High-capacity drying up to 45 cubic meters per hour.
-    EFFICENT_Power: Energy-efficient power management system.
-    SENSE_Klean: Sensory technology that detects when cleaning is needed.
-    SMART_Preheating: Intelligent preheating system that learns and adapts to your usage patterns.
-    STEAM_Maxi: Maximizes steam production for moisture-rich cooking.
-    STEAM_Maxi14_l_sec: Delivers steam at a rate of 14 liters per second.
-    STEAM_Maxi22_l_sec: Delivers steam at a rate of 22 liters per second for heavy-duty usage.
-    STEAM_Plus: Enhanced steam features for additional cooking techniques.
+    adaptive_cooking: Automatically adjusts cooking parameters for optimal results.
+    atr_maxi: Maximizes airflow within the oven to ensure even cooking.
+    air_plus: Enhanced air circulation technology for better heat distribution.
+    auto_matic: Fully automatic cooking processes for ease of use.
+    auto_soft: Softens automatic adjustments for delicate cooking.
+    air_maxi250_km_h: Powerful air circulation at 250 kilometers per hour for rapid cooking.
+    climalux: Advanced climate control within the oven for precise temperature management.
+    ddc_ai: Artificial intelligence-driven dynamic data control for smarter cooking.
+    ddc_app: An application to monitor and control your oven remotely.
+    ddc_stats: Statistical analysis of oven usage and performance data.
+    ddc_unox_com: Online platform integration for oven management.
+    dry_maxi: Maximum drying efficiency for dehydrating foods.
+    dry_plus: Additional drying features for enhanced moisture removal.
+    dry_maxi45_m3_h: High-capacity drying up to 45 cubic meters per hour.
+    efficient_power: Energy-efficient power management system.
+    sense_klean: Sensory technology that detects when cleaning is needed.
+    smart_preheating: Intelligent preheating system that learns and adapts to your usage patterns.
+    steam_maxi: Maximizes steam production for moisture-rich cooking.
+    steam_maxi14_l_sec: Delivers steam at a rate of 14 liters per second.
+    steam_maxi22_l_sec: Delivers steam at a rate of 22 liters per second for heavy-duty usage.
+    steam_plus: Enhanced steam features for additional cooking techniques.
     *****
 
-    ---DO NOT INTERPRET THE QUERY, JUST GIVE ME A JSON string, filters as the KEY AND list of columns as they value JUST A LIST OF FILTERS ACCORDING TO THE ABOVE EXAMPLE---
+    ---DO NOT INTERPRET THE QUERY, JUST GIVE ME A JSON string, filters as the KEY AND list of columns as they value JUST A LIST OF FILTERS ACCORDING TO THE ABOVE EXAMPLE---    ---DO NOT INTERPRET THE QUERY, IF YOU CANT FIND ANY FILTERS OUT OF FOLLOWING COLUMNS PUT AN EMPTY LIST IN THE OUTPUT. FOR EXAMPLE: {{"filters": []}}
     ---DO NOT INTERPRET THE QUERY, IF YOU CANT FIND ANY FILTERS OUT OF FOLLOWING COLUMNS PUT AN EMPTY LIST IN THE OUTPUT. FOR EXAMPLE: {{"filters": []}}
     ---FOR EACH ONE OF THE COLUMNS YOU SHOULD PUT A FILTER IN THE COLUMNS LIST, IF YOU CANT FIND ANY FILTERS OUT OF the columns just skip the column---
     #####{columns}#####
     &&&&&{query}&&&&&
+
 """
 
 filter_chain_prompt = PromptTemplate.from_template(filter_chain_prompt)

@@ -14,6 +14,7 @@
 
 import os
 
+import pandas as pd
 from dotenv import load_dotenv
 from langchain.chains.llm import LLMChain
 from langchain.llms.bedrock import Bedrock
@@ -21,7 +22,7 @@ from langchain.llms.bedrock import Bedrock
 from langchain.document_loaders import CSVLoader
 
 from modules.prompts import QA_CHAIN_PROMPT, CONDENSE_QUESTION_PROMPT, \
-    q_generator_parser, INITIAL_CHAIN_PROMPT, FILTER_GEN_PROMPT
+    q_generator_parser, initial_prompt, filter_chain_prompt, CODE_GEN_PROMPT, filter_parser, answer_chain_prompt
 
 # import langsmith to debug easier
 
@@ -37,34 +38,6 @@ except:
     pass
 
 memory = []
-
-#
-# def create_pages_from_documents(documents, n):
-#     """
-#     Groups every 'n' documents into a 'page_content' key of a new dictionary.
-#
-#     Parameters:
-#     - documents: List of 'Document' objects or similar structures.
-#     - n: Number of documents to group into each 'page_content'.
-#
-#     Returns:
-#     - List[Dict]: A list where each element is a dictionary with a 'page_content' key.
-#     """
-#     pages = []  # Resulting list of page dictionaries
-#     current_page_content = []  # Temporary storage for the current page's content
-#
-#     for document in documents:
-#         current_page_content.append(document)  # Add the document to the current page
-#         if len(current_page_content) == n:  # If the page is full
-#             pages.append({'page_content': current_page_content})  # Add the page to the list
-#             current_page_content = []  # Start a new page
-#
-#     # Add the last page if it has less than 'n' documents but is not empty
-#     if current_page_content:
-#         pages.append({'page_content': current_page_content})
-#
-#     return pages
-
 
 general_llm = LLMChain(
     llm=Bedrock(
@@ -104,7 +77,7 @@ initial_chain = LLMChain(
         model_kwargs={"temperature": 0}
         # model_id = GPT4_DEFAULT
     ),
-    prompt=INITIAL_CHAIN_PROMPT
+    prompt=initial_prompt
 )
 
 filter_gen_chain = LLMChain(
@@ -117,42 +90,48 @@ filter_gen_chain = LLMChain(
         model_kwargs={"temperature": 0}
         # model_id = GPT4_DEFAULT
     ),
-    prompt=FILTER_GEN_PROMPT
+    prompt=filter_chain_prompt,
+    output_parser=filter_parser
 )
 
-# input_text = "Which models have the ability of steam cooking?"
+answer_chain = LLMChain(
+    llm=Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
+        # model_id = GPT4_DEFAULT
+    ),
+    prompt=answer_chain_prompt
+)
 
-# standalone_question = standalone_question_gen.run(chat_history=chat_history,
-#                                                   question=input_text)["standalone_question"]
+code_gen_chain = LLMChain(
+    llm=Bedrock(
+        credentials_profile_name="default",
+        # sets the profile name to use for AWS credentials (if not the default)
+        region_name="us-east-1",  # sets the region name (if not the default)
+        # model_id="ai21.j2-ultra-v1",  # set the foundation model
+        model_id="anthropic.claude-v2:1",
+        model_kwargs={"temperature": 0}
+        # model_id = GPT4_DEFAULT
+    ),
+    prompt=CODE_GEN_PROMPT
+)
 
-# response = get_rag_chat_response(input_text=input_text,
-#                                  memory=get_memory(),
-#                                  index=get_index(),
-#                                  prompt=QA_CHAIN_PROMPT)
-doc_path = "docs/dataset_words.csv"
+doc_path = "docs/final_dataset.csv"
 
-loader = CSVLoader(file_path=doc_path)
-
-data = loader.load()
-# print(data[:5])
-
-# documents = data  # Your list of 'Document' objects as loaded or defined
-# n = 15  # Example: Group every 5 documents
+# loader = CSVLoader(file_path=doc_path)
 #
-# pages = create_pages_from_documents(documents, n)
+# data = loader.load()
 
-# context = pd.read_csv(doc_path)
-# response = general_llm.run(query = input_text,
-#                    context = data[:15]
-# )
+def filter_data_using_filter_chain(conditions, data_path):
 
-# I want 'data' to be a list of dict variables
-
-# response = map_reduce(pages[3].get("page_content"),
-#                       f"{map_prompt}{input_text}#####",
-#                       f"{reduce_prompt}{input_text}#####")
-#
-# print(response)
+    df = pd.read_csv(data_path)
+    df = df.query(' & '.join(conditions))
+    # print(df)
+    return df
 
 def give_it_to_me_baby(prompt, memory):
 
@@ -162,11 +141,22 @@ def give_it_to_me_baby(prompt, memory):
 
     columns = initial_chain.run(query=query)
 
-    filter = filter_gen_chain.run(query=query,
-                                  columns=columns)
+    # columns = str(columns)
+    #
+    print(columns)
 
-    result = filter
+    filters = filter_gen_chain.run(columns=columns,
+                                   query=query)
+
+    print(filters)
+
+    filtered_df = filter_data_using_filter_chain(filters['filters'], doc_path)
+    # print(filtered_df.head(1))
+
+    result = answer_chain.run(context=filtered_df.head(1))
+    # result = code_gen_chain.run(columns=columns,
+    #                             filters=filters)
     return result
 
-print(give_it_to_me_baby("Hey! I want an oven to replace my steam cooker in my bakery. I need it to be cheaper "
-                         "than 3000 euros and compact. Actually I want it to have the ability of cleaning itself", []))
+print(give_it_to_me_baby("Hey! I want an oven to replace my oven in my bakery. I need it to be less "
+                         "than 3000 euros.", []))
